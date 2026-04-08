@@ -80,25 +80,146 @@ module "vibecheck_web" {
   env_configmap  = module.web_configmap.name
 }
 
-module "grafana" {
-  source         = "./modules/deployment"
-  name           = "grafana"
-  namespace      = module.vibecheck_namespace.name
-  image          = "grafana/grafana:latest"
-  container_port = 3000
-  env_vars = {
-    GF_SECURITY_ADMIN_USER     = local.all_env["GF_SECURITY_ADMIN_USER"]
-    GF_SECURITY_ADMIN_PASSWORD = local.all_env["GF_SECURITY_ADMIN_PASSWORD"]
+# ----------------- Monitoring ConfigMaps -----------------
+resource "kubernetes_config_map" "grafana_datasource" {
+  metadata {
+    name      = "grafana-datasource"
+    namespace = module.vibecheck_namespace.name
+  }
+  data = {
+    "datasource.yml" = file("${path.module}/../monitoring/grafana/datasource.yml")
   }
 }
 
-module "prometheus" {
-  source         = "./modules/deployment"
-  name           = "prometheus"
-  namespace      = module.vibecheck_namespace.name
-  image          = "prom/prometheus:latest"
-  container_port = 9090
-  env_vars       = {}
+resource "kubernetes_config_map" "grafana_dashboard_provider" {
+  metadata {
+    name      = "grafana-dashboard-provider"
+    namespace = module.vibecheck_namespace.name
+  }
+  data = {
+    "dashboard-provider.yml" = file("${path.module}/../monitoring/grafana/dashboard-provider.yml")
+  }
+}
+
+resource "kubernetes_config_map" "grafana_dashboard" {
+  metadata {
+    name      = "grafana-dashboard"
+    namespace = module.vibecheck_namespace.name
+  }
+  data = {
+    "dashboard.json" = file("${path.module}/../monitoring/grafana/dashboard.json")
+  }
+}
+
+resource "kubernetes_config_map" "prometheus_config" {
+  metadata {
+    name      = "prometheus-config"
+    namespace = module.vibecheck_namespace.name
+  }
+  data = {
+    "prometheus.yml" = file("${path.module}/../monitoring/prometheus/prometheus.yml")
+  }
+}
+
+# ----------------- Grafana Deployment -----------------
+resource "kubernetes_deployment" "grafana" {
+  metadata {
+    name      = "grafana"
+    namespace = module.vibecheck_namespace.name
+    labels    = { app = "grafana" }
+  }
+
+  spec {
+    replicas = 1
+    selector { match_labels = { app = "grafana" } }
+
+    template {
+      metadata { labels = { app = "grafana" } }
+
+      spec {
+        container {
+          name              = "grafana"
+          image             = "grafana/grafana:latest"
+          image_pull_policy = "IfNotPresent"
+          port { container_port = 3000 }
+
+          env {
+            name  = "GF_SECURITY_ADMIN_USER"
+            value = local.all_env["GF_SECURITY_ADMIN_USER"]
+          }
+          env {
+            name  = "GF_SECURITY_ADMIN_PASSWORD"
+            value = local.all_env["GF_SECURITY_ADMIN_PASSWORD"]
+          }
+
+          volume_mount {
+            name       = "datasource"
+            mount_path = "/etc/grafana/provisioning/datasources"
+          }
+          volume_mount {
+            name       = "dashboard-provider"
+            mount_path = "/etc/grafana/provisioning/dashboards"
+          }
+          volume_mount {
+            name       = "dashboards"
+            mount_path = "/var/lib/grafana/dashboards"
+          }
+        }
+
+        volume {
+          name = "datasource"
+          config_map { name = kubernetes_config_map.grafana_datasource.metadata[0].name }
+        }
+        volume {
+          name = "dashboard-provider"
+          config_map { name = kubernetes_config_map.grafana_dashboard_provider.metadata[0].name }
+        }
+        volume {
+          name = "dashboards"
+          config_map { name = kubernetes_config_map.grafana_dashboard.metadata[0].name }
+        }
+      }
+    }
+  }
+}
+
+# ----------------- Prometheus Deployment -----------------
+resource "kubernetes_deployment" "prometheus" {
+  metadata {
+    name      = "prometheus"
+    namespace = module.vibecheck_namespace.name
+    labels    = { app = "prometheus" }
+  }
+
+  spec {
+    replicas = 1
+    selector { match_labels = { app = "prometheus" } }
+
+    template {
+      metadata { labels = { app = "prometheus" } }
+
+      spec {
+        container {
+          name              = "prometheus"
+          image             = "prom/prometheus:latest"
+          image_pull_policy = "IfNotPresent"
+          port { container_port = 9090 }
+
+          args = ["--config.file=/etc/prometheus/prometheus.yml"]
+
+          volume_mount {
+            name       = "config"
+            mount_path = "/etc/prometheus"
+          }
+        }
+
+        volume {
+          name = "config"
+          config_map { name = kubernetes_config_map.prometheus_config.metadata[0].name }
+        }
+      }
+    }
+  }
 }
 
 # ----------------- Services -----------------
