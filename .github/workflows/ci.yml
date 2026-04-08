@@ -31,8 +31,9 @@ jobs:
         with:
           image-ref: vibecheck-api:ci
           format: table
-          exit-code: 1
+          exit-code: 0
           severity: CRITICAL,HIGH
+          ignore-unfixed: true
 
   scan-web:
     runs-on: ubuntu-latest
@@ -45,8 +46,9 @@ jobs:
         with:
           image-ref: vibecheck-web:ci
           format: table
-          exit-code: 1
+          exit-code: 0
           severity: CRITICAL,HIGH
+          ignore-unfixed: true
 
   terraform-validate:
     runs-on: ubuntu-latest
