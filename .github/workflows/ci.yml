@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install poetry
+      - working-directory: api
+        run: poetry install
+      - working-directory: api
+        run: poetry run ruff check .
+
+  scan-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API image
+        run: docker build -t vibecheck-api:ci api/
+      - name: Trivy scan API
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: vibecheck-api:ci
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
+
+  scan-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Web image
+        run: docker build -t vibecheck-web:ci web/
+      - name: Trivy scan Web
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: vibecheck-web:ci
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
+
+  terraform-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - working-directory: terraform
+        run: terraform init -backend=false
+      - working-directory: terraform
+        run: terraform validate

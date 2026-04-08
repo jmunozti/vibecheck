@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "vibecheck-api"
+version = "1.0.0"
+description = "vibecheck API — real-time polling backend"
+authors = ["Jorge Munoz <jmunozti@gmail.com>"]
+license = "MIT"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.115.6"
+uvicorn = "^0.34.0"
+psycopg2-binary = "^2.9.10"
+prometheus-client = "^0.21.1"
+pydantic = "^2.10.4"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.4"
+httpx = "^0.28.1"
+ruff = "^0.8.6"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
