@@ -1,4 +1,4 @@
-resource "kubernetes_service" "this" {
+resource "kubernetes_service_v1" "this" {
   metadata {
     name      = var.name
     namespace = var.namespace
@@ -18,5 +18,6 @@ resource "kubernetes_service" "this" {
 }
 
 output "name" {
-  value = kubernetes_service.this.metadata[0].name
+  description = "Name of the created Service"
+  value       = kubernetes_service_v1.this.metadata[0].name
 }

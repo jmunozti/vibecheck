@@ -1,4 +1,4 @@
-resource "kubernetes_deployment" "this" {
+resource "kubernetes_deployment_v1" "this" {
   metadata {
     name      = var.name
     namespace = var.namespace
@@ -22,7 +22,7 @@ resource "kubernetes_deployment" "this" {
           for_each = var.init_container ? [1] : []
           content {
             name  = "wait-for-postgres"
-            image = "postgres:15"
+            image = "postgres:16"
             command = [
               "sh", "-c",
               "until pg_isready -h postgres -p 5432 -U $POSTGRES_USER -d $POSTGRES_DB; do echo 'Waiting for PostgreSQL...'; sleep 2; done;"
@@ -36,11 +36,49 @@ resource "kubernetes_deployment" "this" {
         }
 
         container {
-          name               = var.name
-          image              = var.image
-          image_pull_policy  = "IfNotPresent"
+          name              = var.name
+          image             = var.image
+          image_pull_policy = "IfNotPresent"
+
           port {
             container_port = var.container_port
+          }
+
+          resources {
+            requests = {
+              cpu    = var.cpu_request
+              memory = var.memory_request
+            }
+            limits = {
+              cpu    = var.cpu_limit
+              memory = var.memory_limit
+            }
+          }
+
+          dynamic "liveness_probe" {
+            for_each = var.health_path != "" ? [1] : []
+            content {
+              http_get {
+                path = var.health_path
+                port = var.container_port
+              }
+              initial_delay_seconds = 10
+              period_seconds        = 15
+              failure_threshold     = 3
+            }
+          }
+
+          dynamic "readiness_probe" {
+            for_each = var.health_path != "" ? [1] : []
+            content {
+              http_get {
+                path = var.health_path
+                port = var.container_port
+              }
+              initial_delay_seconds = 5
+              period_seconds        = 10
+              failure_threshold     = 3
+            }
           }
 
           dynamic "env_from" {
@@ -66,5 +104,6 @@ resource "kubernetes_deployment" "this" {
 }
 
 output "name" {
-  value = kubernetes_deployment.this.metadata[0].name
+  description = "Name of the created Deployment"
+  value       = kubernetes_deployment_v1.this.metadata[0].name
 }

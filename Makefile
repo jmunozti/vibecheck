@@ -1,4 +1,4 @@
-.PHONY: deploy clean status
+.PHONY: deploy clean status test lint
 
 # Deploy everything locally with Kind + Terraform
 deploy:
@@ -8,6 +8,14 @@ deploy:
 # Check cluster status
 status:
 	kubectl --kubeconfig kubeconfig-kind get all -n vibecheck
+
+# Run backend tests
+test:
+	cd backend && poetry run pytest tests/ -v
+
+# Lint backend code
+lint:
+	cd backend && poetry run ruff check .
 
 # Destroy cluster
 clean:

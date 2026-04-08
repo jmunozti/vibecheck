@@ -14,13 +14,13 @@ done
 echo "Dependencies OK"
 
 # 2. Validate structure
-for dir in api web terraform; do
+for dir in backend frontend terraform; do
   [ -d "$dir" ] || { echo "Error: $dir/ directory not found"; exit 1; }
 done
 
-# 3. Create .env files from examples if they don't exist
-for dir in api web terraform; do
-  if [ ! -f "$dir/.env" ] && [ -f "$dir/.env-example" ]; then
+# 3. Create .env files from examples (always regenerate to stay in sync)
+for dir in backend frontend terraform; do
+  if [ -f "$dir/.env-example" ]; then
     cp "$dir/.env-example" "$dir/.env"
     echo "Created $dir/.env from example"
   fi
@@ -43,12 +43,15 @@ nodes:
       - containerPort: 30030
         hostPort: 30030
         protocol: TCP
+      - containerPort: 30900
+        hostPort: 30900
+        protocol: TCP
 EOF
 
 # 5. Build Docker images
 echo "Building Docker images..."
-docker build -t vibecheck-api:latest api/ --no-cache
-docker build -t vibecheck-web:latest web/ --no-cache
+docker build -t vibecheck-api:latest backend/ --no-cache
+docker build -t vibecheck-web:latest frontend/ --no-cache
 echo "Images built"
 
 # 6. Create or recreate cluster
@@ -81,6 +84,7 @@ terraform apply -auto-approve
 echo ""
 echo "vibecheck deployed successfully!"
 echo ""
-echo "  Web UI:   http://localhost:30080"
-echo "  API:      http://localhost:30501"
-echo "  Grafana:  http://localhost:30030"
+echo "  Web UI:     http://localhost:30080"
+echo "  API:        http://localhost:30501"
+echo "  Grafana:    http://localhost:30030"
+echo "  Prometheus: http://localhost:30900"

@@ -1,3 +1,12 @@
+terraform {
+  required_providers {
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.0"
+    }
+  }
+}
+
 provider "kubernetes" {
   config_path    = var.kubeconfig_path
   config_context = var.kubeconfig_context
@@ -22,14 +31,14 @@ module "api_configmap" {
   source    = "./modules/config-map"
   name      = "vibecheck-api-env"
   namespace = module.vibecheck_namespace.name
-  env_file  = "${path.module}/../api/.env"
+  env_file  = "${path.module}/../backend/.env"
 }
 
 module "web_configmap" {
   source    = "./modules/config-map"
   name      = "vibecheck-web-env"
   namespace = module.vibecheck_namespace.name
-  env_file  = "${path.module}/../web/.env"
+  env_file  = "${path.module}/../frontend/.env"
 }
 
 module "postgres_configmap" {
@@ -69,6 +78,11 @@ module "vibecheck_api" {
   env_configmap      = module.api_configmap.name
   init_container     = true
   init_env_configmap = module.postgres_configmap.name
+  health_path        = "/healthz"
+  cpu_request        = "100m"
+  memory_request     = "128Mi"
+  cpu_limit          = "500m"
+  memory_limit       = "512Mi"
 }
 
 module "vibecheck_web" {
@@ -78,10 +92,15 @@ module "vibecheck_web" {
   image          = "vibecheck-web:latest"
   container_port = 3000
   env_configmap  = module.web_configmap.name
+  health_path    = "/api/info"
+  cpu_request    = "100m"
+  memory_request = "128Mi"
+  cpu_limit      = "500m"
+  memory_limit   = "512Mi"
 }
 
 # ----------------- Monitoring ConfigMaps -----------------
-resource "kubernetes_config_map" "grafana_datasource" {
+resource "kubernetes_config_map_v1" "grafana_datasource" {
   metadata {
     name      = "grafana-datasource"
     namespace = module.vibecheck_namespace.name
@@ -91,7 +110,7 @@ resource "kubernetes_config_map" "grafana_datasource" {
   }
 }
 
-resource "kubernetes_config_map" "grafana_dashboard_provider" {
+resource "kubernetes_config_map_v1" "grafana_dashboard_provider" {
   metadata {
     name      = "grafana-dashboard-provider"
     namespace = module.vibecheck_namespace.name
@@ -101,7 +120,7 @@ resource "kubernetes_config_map" "grafana_dashboard_provider" {
   }
 }
 
-resource "kubernetes_config_map" "grafana_dashboard" {
+resource "kubernetes_config_map_v1" "grafana_dashboard" {
   metadata {
     name      = "grafana-dashboard"
     namespace = module.vibecheck_namespace.name
@@ -111,7 +130,7 @@ resource "kubernetes_config_map" "grafana_dashboard" {
   }
 }
 
-resource "kubernetes_config_map" "prometheus_config" {
+resource "kubernetes_config_map_v1" "prometheus_config" {
   metadata {
     name      = "prometheus-config"
     namespace = module.vibecheck_namespace.name
@@ -122,7 +141,7 @@ resource "kubernetes_config_map" "prometheus_config" {
 }
 
 # ----------------- Grafana Deployment -----------------
-resource "kubernetes_deployment" "grafana" {
+resource "kubernetes_deployment_v1""grafana" {
   metadata {
     name      = "grafana"
     namespace = module.vibecheck_namespace.name
@@ -168,15 +187,15 @@ resource "kubernetes_deployment" "grafana" {
 
         volume {
           name = "datasource"
-          config_map { name = kubernetes_config_map.grafana_datasource.metadata[0].name }
+          config_map { name = kubernetes_config_map_v1.grafana_datasource.metadata[0].name }
         }
         volume {
           name = "dashboard-provider"
-          config_map { name = kubernetes_config_map.grafana_dashboard_provider.metadata[0].name }
+          config_map { name = kubernetes_config_map_v1.grafana_dashboard_provider.metadata[0].name }
         }
         volume {
           name = "dashboards"
-          config_map { name = kubernetes_config_map.grafana_dashboard.metadata[0].name }
+          config_map { name = kubernetes_config_map_v1.grafana_dashboard.metadata[0].name }
         }
       }
     }
@@ -184,7 +203,7 @@ resource "kubernetes_deployment" "grafana" {
 }
 
 # ----------------- Prometheus Deployment -----------------
-resource "kubernetes_deployment" "prometheus" {
+resource "kubernetes_deployment_v1""prometheus" {
   metadata {
     name      = "prometheus"
     namespace = module.vibecheck_namespace.name
@@ -215,7 +234,7 @@ resource "kubernetes_deployment" "prometheus" {
 
         volume {
           name = "config"
-          config_map { name = kubernetes_config_map.prometheus_config.metadata[0].name }
+          config_map { name = kubernetes_config_map_v1.prometheus_config.metadata[0].name }
         }
       }
     }

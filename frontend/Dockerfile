@@ -9,6 +9,7 @@ RUN pnpm install --frozen-lockfile
 FROM node:20-slim AS builder
 WORKDIR /app
 RUN npm install -g pnpm
+ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build

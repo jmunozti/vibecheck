@@ -1,20 +1,19 @@
 {
   "annotations": { "list": [] },
   "editable": true,
-  "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
   "links": [],
   "panels": [
     {
-      "title": "API — Requests per Second",
+      "title": "Prometheus — HTTP Requests/s",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus" },
       "targets": [
         {
-          "expr": "rate(http_requests_total{job=\"vibecheck-api\"}[1m])",
-          "legendFormat": "{{method}} {{endpoint}}"
+          "expr": "rate(prometheus_http_requests_total[1m])",
+          "legendFormat": "{{handler}} ({{code}})"
         }
       ],
       "fieldConfig": {
@@ -23,130 +22,109 @@
       }
     },
     {
-      "title": "API — Request Latency (p95)",
+      "title": "Services — CPU Usage",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"vibecheck-api\"}[5m]))",
-          "legendFormat": "p95"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "s", "color": { "mode": "palette-classic" } },
-        "overrides": []
-      }
-    },
-    {
-      "title": "API — HTTP Status Codes",
-      "type": "piechart",
-      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "sum by(status) (increase(http_requests_total{job=\"vibecheck-api\"}[5m]))",
-          "legendFormat": "{{status}}"
-        }
-      ]
-    },
-    {
-      "title": "Web — Requests per Second",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "rate(http_requests_total{job=\"vibecheck-web\"}[1m])",
-          "legendFormat": "{{method}} {{path}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "reqps" },
-        "overrides": []
-      }
-    },
-    {
-      "title": "PostgreSQL — Active Connections",
-      "type": "stat",
-      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "pg_stat_activity_count{datname=\"vibecheck\"}",
-          "legendFormat": "connections"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "thresholds": { "steps": [
-          { "color": "green", "value": null },
-          { "color": "yellow", "value": 50 },
-          { "color": "red", "value": 100 }
-        ]}},
-        "overrides": []
-      }
-    },
-    {
-      "title": "PostgreSQL — Transactions per Second",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "rate(pg_stat_database_xact_commit{datname=\"vibecheck\"}[1m])",
-          "legendFormat": "commits/s"
-        },
-        {
-          "expr": "rate(pg_stat_database_xact_rollback{datname=\"vibecheck\"}[1m])",
-          "legendFormat": "rollbacks/s"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "ops" },
-        "overrides": []
-      }
-    },
-    {
-      "title": "PostgreSQL — Database Size",
-      "type": "stat",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "pg_database_size_bytes{datname=\"vibecheck\"}",
-          "legendFormat": "size"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "bytes" },
-        "overrides": []
-      }
-    },
-    {
-      "title": "PostgreSQL — Rows in Polls Table",
-      "type": "stat",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "pg_stat_user_tables_n_live_tup{relname=\"polls\"}",
-          "legendFormat": "rows"
-        }
-      ]
-    },
-    {
-      "title": "Node — CPU Usage",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        {
-          "expr": "rate(process_cpu_seconds_total{job=~\"vibecheck-.*\"}[1m])",
+          "expr": "rate(process_cpu_seconds_total[1m])",
           "legendFormat": "{{job}}"
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "percentunit" },
+        "defaults": { "unit": "percentunit", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Healthy Scrape Targets",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "count(up == 1)",
+          "legendFormat": "healthy targets"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "steps": [
+            { "color": "red", "value": null },
+            { "color": "yellow", "value": 2 },
+            { "color": "green", "value": 3 }
+          ]}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Postgres Exporter — Scrape Duration",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 8 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "pg_exporter_last_scrape_duration_seconds",
+          "legendFormat": "duration"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s" },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Postgres Exporter — Total Scrapes",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 8 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "pg_exporter_scrapes_total",
+          "legendFormat": "scrapes"
+        }
+      ]
+    },
+    {
+      "title": "All Targets — Status",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "up",
+          "legendFormat": "{{job}}",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Value" },
+            "properties": [
+              { "id": "mappings", "value": [{ "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }] }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "title": "Services — Memory Usage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "datasource": { "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "process_resident_memory_bytes",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "color": { "mode": "palette-classic" } },
         "overrides": []
       }
     }
@@ -157,5 +135,5 @@
   "time": { "from": "now-1h", "to": "now" },
   "title": "vibecheck — Overview",
   "uid": "vibecheck-overview",
-  "version": 1
+  "version": 3
 }

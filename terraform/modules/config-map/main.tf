@@ -6,7 +6,7 @@ locals {
   }
 }
 
-resource "kubernetes_config_map" "this" {
+resource "kubernetes_config_map_v1" "this" {
   metadata {
     name      = var.name
     namespace = var.namespace
@@ -16,5 +16,6 @@ resource "kubernetes_config_map" "this" {
 }
 
 output "name" {
-  value = kubernetes_config_map.this.metadata[0].name
+  description = "Name of the created ConfigMap"
+  value       = kubernetes_config_map_v1.this.metadata[0].name
 }
