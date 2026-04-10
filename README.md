@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/vibecheck.png" alt="vibecheck" width="320">
+</p>
+
 # vibecheck 🍕
 
 > Pineapple on pizza? Cast your vote. See results in real-time.
